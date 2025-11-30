@@ -1,0 +1,124 @@
+---
+title: Quick start
+description: Get started with sparqlite in 5 minutes
+---
+
+This guide will help you make your first SPARQL query using sparqlite with the OpenCitations Meta endpoint.
+
+## Basic usage
+
+```python
+from sparqlite import SPARQLClient
+
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    # Execute a SELECT query to find journal articles
+    result = client.query("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+        PREFIX datacite: <http://purl.org/spar/datacite/>
+        PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+
+        SELECT ?article ?title ?doi WHERE {
+            ?article a fabio:JournalArticle ;
+                     dcterms:title ?title ;
+                     datacite:hasIdentifier ?id .
+            ?id datacite:usesIdentifierScheme datacite:doi ;
+                literal:hasLiteralValue ?doi .
+        }
+        LIMIT 10
+    """)
+
+    # Iterate over results
+    for row in result:
+        print(f"{row['title']}: {row['doi']}")
+```
+
+The context manager ensures the HTTP connection is properly closed when done and enables connection reuse for multiple queries.
+
+## Checking results
+
+You can check if a query returned results and get the number of rows:
+
+```python
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    result = client.query("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+
+        SELECT ?article WHERE {
+            ?article a fabio:JournalArticle .
+        }
+        LIMIT 100
+    """)
+
+    # Check if there are results
+    if result:
+        print(f"Found {len(result)} results")
+
+    # Get variable names
+    print(f"Variables: {result.variables}")
+```
+
+## Different query types
+
+sparqlite supports all SPARQL query types:
+
+```python
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    # SELECT - returns tabular results
+    result = client.query("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        SELECT ?article ?title WHERE {
+            ?article a fabio:JournalArticle ;
+                     dcterms:title ?title .
+        }
+        LIMIT 5
+    """)
+
+    # ASK - returns True or False
+    exists = client.ask("""
+        PREFIX datacite: <http://purl.org/spar/datacite/>
+        PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+
+        ASK {
+            ?id datacite:usesIdentifierScheme datacite:doi ;
+                literal:hasLiteralValue "10.1162/qss_a_00023" .
+        }
+    """)
+    if exists:
+        print("This DOI exists in OpenCitations!")
+
+    # CONSTRUCT - returns a GraphResult wrapping an rdflib.Graph
+    graph = client.construct("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        CONSTRUCT {
+            ?article dcterms:title ?title .
+        }
+        WHERE {
+            ?article a fabio:JournalArticle ;
+                     dcterms:title ?title .
+        }
+        LIMIT 10
+    """)
+
+    # DESCRIBE - returns a GraphResult wrapping an rdflib.Graph
+    graph = client.describe("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        DESCRIBE ?journal WHERE {
+            ?journal a fabio:Journal ;
+                     dcterms:title ?title .
+        }
+        LIMIT 1
+    """)
+```
+
+## Next steps
+
+- Learn about [SELECT queries](/guides/select-queries/) in detail
+- Understand [connection pooling](/configuration/connection-pooling/) for performance
+- Configure [retry settings](/configuration/retry-settings/) for reliability

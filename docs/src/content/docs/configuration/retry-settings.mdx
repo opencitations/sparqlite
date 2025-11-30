@@ -1,0 +1,81 @@
+---
+title: Retry settings
+description: Configure automatic retry and exponential backoff
+---
+
+sparqlite includes automatic retry with exponential backoff for transient errors. This helps your application handle temporary failures gracefully.
+
+## Default behavior
+
+By default, sparqlite will:
+- Retry up to 5 times on transient errors
+- Use exponential backoff with a factor of 0.5
+
+```python
+from sparqlite import SPARQLClient
+
+# Default settings: max_retries=5, backoff_factor=0.5
+with SPARQLClient("https://dbpedia.org/sparql") as client:
+    result = client.query(query)
+```
+
+## Configuring retries
+
+### max_retries
+
+Set the maximum number of retry attempts:
+
+```python
+# Retry up to 3 times
+with SPARQLClient("https://dbpedia.org/sparql", max_retries=3) as client:
+    result = client.query(query)
+
+# Disable retries entirely
+with SPARQLClient("https://dbpedia.org/sparql", max_retries=0) as client:
+    result = client.query(query)
+```
+
+### backoff_factor
+
+Control the delay between retries. The wait time is calculated as:
+
+```
+wait_time = backoff_factor * (2 ^ attempt)
+```
+
+Example with `backoff_factor=0.5`:
+- Attempt 1: wait 1 second (0.5 * 2^1)
+- Attempt 2: wait 2 seconds (0.5 * 2^2)
+- Attempt 3: wait 4 seconds (0.5 * 2^3)
+- Attempt 4: wait 8 seconds (0.5 * 2^4)
+- Attempt 5: wait 16 seconds (0.5 * 2^5)
+
+```python
+# Faster retries
+with SPARQLClient("https://dbpedia.org/sparql", backoff_factor=0.25) as client:
+    result = client.query(query)
+
+# Slower retries
+with SPARQLClient("https://dbpedia.org/sparql", backoff_factor=1.0) as client:
+    result = client.query(query)
+```
+
+## What triggers retry
+
+sparqlite automatically retries on these transient errors:
+
+| Error type | Description |
+|------------|-------------|
+| HTTP 5xx | Server errors (500, 502, 503, etc.) |
+| Connection failure | Cannot connect to the endpoint |
+| Timeout | Request timed out |
+
+## What does NOT trigger retry
+
+These errors fail immediately without retry:
+
+| Error type | Description |
+|------------|-------------|
+| HTTP 400 | Query syntax error (QueryError) |
+| HTTP 4xx | Client errors (401, 403, 404, etc.) |
+| Parse error | Invalid response format |

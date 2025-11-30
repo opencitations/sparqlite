@@ -1,0 +1,91 @@
+---
+title: ASK queries
+description: Execute ASK queries that return boolean results
+---
+
+ASK queries test whether a pattern exists in the data and return a boolean result directly.
+
+## Basic ASK query
+
+```python
+from sparqlite import SPARQLClient
+
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    # Check if a specific DOI exists in OpenCitations
+    exists = client.ask("""
+        PREFIX datacite: <http://purl.org/spar/datacite/>
+        PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+
+        ASK {
+            ?id datacite:usesIdentifierScheme datacite:doi ;
+                literal:hasLiteralValue "10.1162/qss_a_00023" .
+        }
+    """)
+
+    if exists:
+        print("This DOI exists in OpenCitations!")
+    else:
+        print("DOI not found")
+```
+
+## Using the boolean result
+
+The `ask()` method returns `True` or `False` directly:
+
+```python
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    result = client.ask("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+
+        ASK {
+            ?article a fabio:JournalArticle .
+        }
+    """)
+
+    # Use directly in conditionals
+    if result:
+        print("There are journal articles in the database")
+
+    # result is already a bool
+    print(f"Result type: {type(result)}")  # <class 'bool'>
+```
+
+## Checking data existence
+
+ASK queries are useful for validation before executing more complex queries:
+
+```python
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    # Check if a DOI exists before querying article details
+    doi = "10.1162/qss_a_00023"
+
+    exists = client.ask(f"""
+        PREFIX datacite: <http://purl.org/spar/datacite/>
+        PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+
+        ASK {{
+            ?id datacite:usesIdentifierScheme datacite:doi ;
+                literal:hasLiteralValue "{doi}" .
+        }}
+    """)
+
+    if exists:
+        result = client.query(f"""
+            PREFIX fabio: <http://purl.org/spar/fabio/>
+            PREFIX dcterms: <http://purl.org/dc/terms/>
+            PREFIX datacite: <http://purl.org/spar/datacite/>
+            PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+
+            SELECT ?article ?title WHERE {{
+                ?article a fabio:JournalArticle ;
+                         dcterms:title ?title ;
+                         datacite:hasIdentifier ?id .
+                ?id datacite:usesIdentifierScheme datacite:doi ;
+                    literal:hasLiteralValue "{doi}" .
+            }}
+        """)
+        for row in result["results"]["bindings"]:
+            print(f"Found article: {row['title']['value']}")
+    else:
+        print(f"DOI {doi} not found in OpenCitations")
+```

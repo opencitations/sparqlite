@@ -1,0 +1,112 @@
+---
+title: CONSTRUCT and DESCRIBE
+description: Build RDF graphs with CONSTRUCT and DESCRIBE queries
+---
+
+CONSTRUCT and DESCRIBE queries return RDF graphs instead of tabular data. sparqlite returns an [rdflib](https://rdflib.readthedocs.io/) `Graph` directly.
+
+## CONSTRUCT queries
+
+CONSTRUCT queries create a new RDF graph based on a template:
+
+```python
+from sparqlite import SPARQLClient
+
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    # Build a graph linking authors to their articles
+    graph = client.construct("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+        PREFIX pro: <http://purl.org/spar/pro/>
+        PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+        CONSTRUCT {
+            ?author foaf:name ?name ;
+                    foaf:made ?article .
+            ?article dcterms:title ?title .
+        }
+        WHERE {
+            ?article a fabio:JournalArticle ;
+                     dcterms:title ?title ;
+                     pro:isDocumentContextFor ?role .
+            ?role pro:withRole pro:author ;
+                  pro:isHeldBy ?author .
+            ?author foaf:name ?name .
+        }
+        LIMIT 10
+    """)
+
+    for subject, predicate, obj in graph:
+        print(f"{subject} {predicate} {obj}")
+```
+
+## DESCRIBE queries
+
+DESCRIBE queries return all triples related to a resource:
+
+```python
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    # Describe a journal by finding it first
+    graph = client.describe("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        DESCRIBE ?journal WHERE {
+            ?journal a fabio:Journal ;
+                     dcterms:title ?title .
+        }
+        LIMIT 1
+    """)
+
+    for subject, predicate, obj in graph:
+        print(f"{subject} {predicate} {obj}")
+```
+
+## Serializing graphs
+
+Export the graph to various RDF formats using rdflib's serialize method:
+
+```python
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    graph = client.construct(query)
+
+    # Turtle (default)
+    turtle_str = graph.serialize()
+
+    # Other formats
+    n3_str = graph.serialize(format="n3")
+    xml_str = graph.serialize(format="xml")
+    ntriples_str = graph.serialize(format="nt")
+    json_ld = graph.serialize(format="json-ld")
+```
+
+## Combining graphs
+
+Since sparqlite returns [rdflib](https://rdflib.readthedocs.io/) `Graph` objects directly, you can combine multiple results:
+
+```python
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    # Build graphs for different article types
+    articles = client.construct("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        CONSTRUCT { ?a dcterms:title ?t }
+        WHERE { ?a a fabio:JournalArticle ; dcterms:title ?t }
+        LIMIT 10
+    """)
+
+    books = client.construct("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        CONSTRUCT { ?b dcterms:title ?t }
+        WHERE { ?b a fabio:Book ; dcterms:title ?t }
+        LIMIT 10
+    """)
+
+    # Combine using rdflib
+    combined = articles + books
+
+    print(f"Combined graph has {len(combined)} triples")
+```

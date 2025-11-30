@@ -1,0 +1,94 @@
+---
+title: SELECT queries
+description: Execute SELECT queries and iterate over tabular results
+---
+
+SELECT queries return tabular data with named variables. sparqlite returns the standard SPARQL JSON results format as a Python dictionary.
+
+## Basic SELECT query
+
+```python
+from sparqlite import SPARQLClient
+
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    result = client.query("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        SELECT ?article ?title WHERE {
+            ?article a fabio:JournalArticle ;
+                     dcterms:title ?title .
+        }
+        LIMIT 10
+    """)
+
+    for row in result["results"]["bindings"]:
+        print(f"Article: {row['article']['value']}")
+        print(f"Title: {row['title']['value']}")
+```
+
+## Result structure
+
+The returned dictionary follows the SPARQL JSON results format:
+
+```python
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    result = client.query("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        SELECT ?article ?title WHERE {
+            ?article a fabio:JournalArticle ;
+                     dcterms:title ?title .
+        }
+        LIMIT 10
+    """)
+
+    # Get variable names
+    print(f"Variables: {result['head']['vars']}")  # ['article', 'title']
+
+    # Get the number of rows
+    print(f"Found {len(result['results']['bindings'])} results")
+
+    # Check if there are any results
+    if result["results"]["bindings"]:
+        print("Query returned results")
+```
+
+## Handling missing values
+
+When a variable is unbound in a result row (OPTIONAL), it is absent from the binding:
+
+```python
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    result = client.query("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+        PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+
+        SELECT ?article ?title ?date WHERE {
+            ?article a fabio:JournalArticle ;
+                     dcterms:title ?title .
+            OPTIONAL { ?article prism:publicationDate ?date }
+        }
+        LIMIT 5
+    """)
+
+    for row in result["results"]["bindings"]:
+        title = row["title"]["value"]
+        if "date" in row:
+            print(f"{title} was published on {row['date']['value']}")
+        else:
+            print(f"{title} has no publication date recorded")
+```
+
+## Using the select() alias
+
+The `select()` method is an alias for `query()`:
+
+```python
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    # These are equivalent
+    result = client.query(query)
+    result = client.select(query)
+```

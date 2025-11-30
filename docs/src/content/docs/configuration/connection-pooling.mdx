@@ -1,0 +1,62 @@
+---
+title: Connection pooling
+description: Reuse HTTP connections for improved performance
+---
+
+sparqlite automatically reuses HTTP connections across multiple requests to the same endpoint, reducing latency and improving performance.
+
+## How it works
+
+When you create a `SPARQLClient`, it initializes a persistent connection that is reused for all subsequent requests. This avoids the overhead of establishing a new TCP connection and TLS handshake for each query.
+
+```python
+from sparqlite import SPARQLClient
+
+# Connection is established on first request
+client = SPARQLClient("https://dbpedia.org/sparql")
+
+# First query - establishes connection
+result1 = client.query("SELECT ?s WHERE { ?s ?p ?o } LIMIT 1")
+
+# Subsequent queries - reuse existing connection (faster)
+result2 = client.query("SELECT ?p WHERE { ?s ?p ?o } LIMIT 1")
+result3 = client.query("SELECT ?o WHERE { ?s ?p ?o } LIMIT 1")
+
+# Clean up when done
+client.close()
+```
+
+## Using a context manager
+
+The recommended way to use sparqlite is with a context manager, which automatically closes the connection when done:
+
+```python
+from sparqlite import SPARQLClient
+
+with SPARQLClient("https://dbpedia.org/sparql") as client:
+    result1 = client.query("SELECT ?s WHERE { ?s ?p ?o } LIMIT 1")
+    result2 = client.query("SELECT ?p WHERE { ?s ?p ?o } LIMIT 1")
+    # Connection is automatically closed when exiting the with block
+```
+
+## Cleaning up resources
+
+### Using close()
+
+If you are not using a context manager, call `close()` when you are done with the client:
+
+```python
+client = SPARQLClient("https://dbpedia.org/sparql")
+try:
+    result = client.query("SELECT * WHERE { ?s ?p ?o } LIMIT 5")
+finally:
+    client.close()
+```
+
+### Automatic cleanup
+
+If you forget to call `close()`, the connection will be closed when the client object is garbage collected. However, it is best practice to explicitly close connections to release resources promptly.
+
+## Thread safety
+
+Each `SPARQLClient` instance should be used by a single thread. If you need to make concurrent requests, create separate client instances for each thread.

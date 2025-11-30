@@ -1,0 +1,58 @@
+name: Release to PyPI
+
+on:
+  workflow_run:
+    workflows: ["Tests"]
+    branches: [master]
+    types:
+      - completed
+
+jobs:
+  release:
+    name: Release to PyPI
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      contains(github.event.workflow_run.head_commit.message, '[release]')
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        run: uv python install 3.10
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Install semantic-release
+        run: |
+          npm install -g semantic-release
+          npm install -g @semantic-release/git
+          npm install -g @semantic-release/changelog
+          npm install -g @semantic-release/exec
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+      - name: Publish to PyPI
+        if: success()
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: uv publish --token $PYPI_API_TOKEN

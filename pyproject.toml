@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sparqlite"
+version = "0.1.0"
+description = "A modern, lightweight SPARQL 1.1 client for Python"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "pycurl>=7.45.7",
+    "rdflib>=7.5.0",
+]
+
+[dependency-groups]
+dev = [
+    "coverage>=7.10.7",
+    "isort>=6.1.0",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "virtuoso-utilities>=1.6.1",
+]

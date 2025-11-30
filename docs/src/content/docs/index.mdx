@@ -1,0 +1,57 @@
+---
+title: sparqlite
+description: A modern, lightweight SPARQL 1.1 client for Python
+template: splash
+hero:
+  tagline: Query RDF endpoints with a clean, Pythonic API
+  actions:
+    - text: Get started
+      link: /getting-started/installation/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/opencitations/sparqlite
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Features
+
+<CardGrid stagger>
+  <Card title="Full SPARQL 1.1 support" icon="pencil">
+    Execute SELECT, ASK, CONSTRUCT, DESCRIBE, and UPDATE queries with a simple, consistent API.
+  </Card>
+  <Card title="Simple return types" icon="document">
+    SELECT returns dict, ASK returns bool, CONSTRUCT/DESCRIBE return rdflib.Graph.
+  </Card>
+  <Card title="Automatic retry" icon="rocket">
+    Built-in exponential backoff for transient errors keeps your queries running smoothly.
+  </Card>
+  <Card title="Type-safe" icon="setting">
+    Complete type hints throughout for IDE autocomplete and static analysis support.
+  </Card>
+</CardGrid>
+
+## Quick example
+
+```python
+from sparqlite import SPARQLClient
+
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    result = client.query("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+        PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+
+        SELECT ?article ?title ?date WHERE {
+            ?article a fabio:JournalArticle ;
+                     dcterms:title ?title ;
+                     prism:publicationDate ?date .
+        }
+        LIMIT 5
+    """)
+
+    for row in result["results"]["bindings"]:
+        print(f"{row['title']['value']} ({row['date']['value']})")
+```

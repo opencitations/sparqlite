@@ -1,0 +1,160 @@
+---
+title: Error handling
+description: Handle SPARQL errors and connection failures gracefully
+---
+
+sparqlite provides a hierarchy of exceptions to help you handle different error conditions.
+
+## Exception hierarchy
+
+```
+SPARQLError (base)
+├── QueryError      # SPARQL syntax errors
+└── EndpointError   # HTTP and connection errors
+```
+
+## Importing exceptions
+
+```python
+from sparqlite import (
+    SPARQLError,
+    QueryError,
+    EndpointError,
+)
+```
+
+## QueryError
+
+Raised when the SPARQL query has a syntax error (HTTP 400):
+
+```python
+from sparqlite import SPARQLClient, QueryError
+
+try:
+    with SPARQLClient("https://dbpedia.org/sparql") as client:
+        result = client.query("SELECT * WHERE { invalid syntax }")
+except QueryError as e:
+    print(f"Query syntax error: {e}")
+```
+
+## EndpointError
+
+Raised for HTTP errors and connection failures:
+
+```python
+from sparqlite import SPARQLClient, EndpointError
+
+try:
+    with SPARQLClient("https://nonexistent.example/sparql") as client:
+        result = client.query("SELECT * WHERE { ?s ?p ?o } LIMIT 1")
+except EndpointError as e:
+    print(f"Connection error: {e}")
+    if e.status_code:
+        print(f"HTTP status: {e.status_code}")
+```
+
+### Status code access
+
+`EndpointError` includes the HTTP status code when available:
+
+```python
+try:
+    with SPARQLClient("https://dbpedia.org/sparql") as client:
+        result = client.query(query)
+except EndpointError as e:
+    if e.status_code == 503:
+        print("Service temporarily unavailable")
+    elif e.status_code == 500:
+        print("Server error")
+    elif e.status_code is None:
+        print("Connection failed (no HTTP response)")
+```
+
+## Catching all SPARQL errors
+
+Use the base `SPARQLError` to catch any sparqlite exception:
+
+```python
+from sparqlite import SPARQLClient, SPARQLError
+
+try:
+    with SPARQLClient("https://dbpedia.org/sparql") as client:
+        result = client.query(query)
+        for row in result:
+            print(row)
+except SPARQLError as e:
+    print(f"SPARQL operation failed: {e}")
+```
+
+## Error handling patterns
+
+### Retry with fallback endpoint
+
+```python
+from sparqlite import SPARQLClient, EndpointError
+
+endpoints = [
+    "https://primary.example/sparql",
+    "https://backup.example/sparql",
+]
+
+for endpoint in endpoints:
+    try:
+        with SPARQLClient(endpoint) as client:
+            result = client.query(query)
+            break
+    except EndpointError:
+        continue
+else:
+    raise RuntimeError("All endpoints failed")
+```
+
+### Validate queries before execution
+
+```python
+from sparqlite import SPARQLClient, QueryError
+
+def safe_query(client, query):
+    try:
+        return client.query(query)
+    except QueryError as e:
+        print(f"Invalid query: {e}")
+        return None
+
+with SPARQLClient("https://dbpedia.org/sparql") as client:
+    result = safe_query(client, query)
+```
+
+### Distinguish error types
+
+```python
+from sparqlite import (
+    SPARQLClient,
+    QueryError,
+    EndpointError,
+)
+
+try:
+    with SPARQLClient("https://dbpedia.org/sparql") as client:
+        result = client.query(query)
+except QueryError:
+    print("Fix your SPARQL query syntax")
+except EndpointError as e:
+    if e.status_code and e.status_code >= 500:
+        print("Server issue, try again later")
+    else:
+        print("Check your endpoint URL")
+```
+
+## Automatic retry behavior
+
+sparqlite automatically retries on transient errors (5xx responses and connection failures). See [Retry settings](/configuration/retry-settings/) to configure this behavior.
+
+Errors that trigger automatic retry:
+- HTTP 5xx server errors
+- Connection failures
+- Timeout errors
+
+Errors that do NOT trigger retry:
+- HTTP 400 (QueryError)
+- HTTP 4xx client errors (except 400)

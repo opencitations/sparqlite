@@ -1,0 +1,50 @@
+---
+title: Installation
+description: How to install sparqlite in your Python project
+---
+
+## Requirements
+
+- Python 3.9 or higher
+- libcurl development headers (for pycurl)
+
+## Install with pip
+
+```bash
+pip install sparqlite
+```
+
+## System dependencies
+
+sparqlite uses [pycurl](https://pycurl.io/) for HTTP requests, which requires libcurl development headers.
+
+### Debian/Ubuntu
+
+```bash
+sudo apt-get install libcurl4-openssl-dev
+```
+
+### Fedora/RHEL
+
+```bash
+sudo dnf install libcurl-devel
+```
+
+### macOS
+
+```bash
+brew install curl
+```
+
+### Windows
+
+On Windows, pycurl wheels include the necessary libraries, so no additional installation is required.
+
+## Verify installation
+
+```python
+from sparqlite import SPARQLClient
+
+with SPARQLClient("https://opencitations.net/meta/sparql") as client:
+    print("sparqlite is ready!")
+```

@@ -1,0 +1,183 @@
+---
+title: UPDATE queries
+description: Modify RDF data with INSERT, DELETE, and other update operations
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+SPARQL UPDATE queries modify data in the triplestore. sparqlite supports all SPARQL 1.1 Update operations through the `update()` method.
+
+<Aside type="caution">
+  UPDATE queries modify data permanently. Make sure you have the necessary permissions and that you're targeting the correct endpoint.
+</Aside>
+
+## Basic UPDATE query
+
+```python
+from sparqlite import SPARQLClient
+
+with SPARQLClient("https://your-triplestore.example/sparql") as client:
+    client.update("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        INSERT DATA {
+            <https://w3id.org/oc/meta/br/1> a fabio:JournalArticle ;
+                dcterms:title "A study on citation networks" .
+        }
+    """)
+```
+
+## INSERT DATA
+
+Add new triples to the graph:
+
+```python
+with SPARQLClient("https://your-triplestore.example/sparql") as client:
+    client.update("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+        PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+        PREFIX pro: <http://purl.org/spar/pro/>
+
+        INSERT DATA {
+            <https://w3id.org/oc/meta/br/2> a fabio:JournalArticle ;
+                dcterms:title "Machine learning in bibliometrics" ;
+                prism:publicationDate "2024-01-15" ;
+                pro:isDocumentContextFor <https://w3id.org/oc/meta/ar/1> .
+        }
+    """)
+```
+
+## DELETE DATA
+
+Remove specific triples:
+
+```python
+with SPARQLClient("https://your-triplestore.example/sparql") as client:
+    client.update("""
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        DELETE DATA {
+            <https://w3id.org/oc/meta/br/2> dcterms:title "Machine learning in bibliometrics" .
+        }
+    """)
+```
+
+## DELETE/INSERT with WHERE
+
+Modify existing data based on patterns:
+
+```python
+with SPARQLClient("https://your-triplestore.example/sparql") as client:
+    # Update an article title
+    client.update("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        DELETE { ?article dcterms:title ?oldTitle }
+        INSERT { ?article dcterms:title "Machine learning in bibliometrics (revised)" }
+        WHERE {
+            ?article a fabio:JournalArticle ;
+                     dcterms:title ?oldTitle .
+            FILTER(?oldTitle = "Machine learning in bibliometrics")
+        }
+    """)
+```
+
+## DELETE WHERE
+
+Delete triples matching a pattern:
+
+```python
+with SPARQLClient("https://your-triplestore.example/sparql") as client:
+    # Delete all triples about a specific article
+    client.update("""
+        DELETE WHERE {
+            <https://w3id.org/oc/meta/br/2> ?p ?o .
+        }
+    """)
+```
+
+## CLEAR and DROP
+
+Remove all data from a graph:
+
+```python
+with SPARQLClient("https://your-triplestore.example/sparql") as client:
+    # Clear a named graph containing citation data
+    client.update("CLEAR GRAPH <https://w3id.org/oc/meta/citations>")
+
+    # Clear the default graph
+    client.update("CLEAR DEFAULT")
+
+    # Drop a named graph (removes the graph entirely)
+    client.update("DROP GRAPH <https://w3id.org/oc/meta/citations>")
+```
+
+## Working with named graphs
+
+```python
+with SPARQLClient("https://your-triplestore.example/sparql") as client:
+    # Insert into a specific graph
+    client.update("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        INSERT DATA {
+            GRAPH <https://w3id.org/oc/meta/articles> {
+                <https://w3id.org/oc/meta/br/3> a fabio:JournalArticle ;
+                    dcterms:title "Semantic web technologies for open science" .
+            }
+        }
+    """)
+
+    # Copy between graphs
+    client.update("COPY <https://w3id.org/oc/meta/articles> TO <https://w3id.org/oc/meta/backup>")
+
+    # Move a graph
+    client.update("MOVE <https://w3id.org/oc/meta/staging> TO <https://w3id.org/oc/meta/articles>")
+```
+
+## Return value
+
+The `update()` method returns `None`. It does not return any data:
+
+```python
+with SPARQLClient("https://your-triplestore.example/sparql") as client:
+    result = client.update("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        INSERT DATA {
+            <https://w3id.org/oc/meta/br/4> a fabio:JournalArticle ;
+                dcterms:title "Open access publishing trends" .
+        }
+    """)
+    print(result)  # None
+```
+
+To verify an update, execute a SELECT or ASK query afterward:
+
+```python
+with SPARQLClient("https://your-triplestore.example/sparql") as client:
+    client.update("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+
+        INSERT DATA {
+            <https://w3id.org/oc/meta/br/4> a fabio:JournalArticle ;
+                dcterms:title "Open access publishing trends" .
+        }
+    """)
+
+    exists = client.ask("""
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+
+        ASK {
+            <https://w3id.org/oc/meta/br/4> a fabio:JournalArticle .
+        }
+    """)
+    if exists:
+        print("Article inserted successfully")
+```
