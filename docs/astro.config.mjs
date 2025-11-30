@@ -38,6 +38,12 @@ export default defineConfig({
 						{ label: 'Retry settings', slug: 'configuration/retry-settings' },
 					],
 				},
+				{
+					label: 'Architecture',
+					items: [
+						{ label: 'Why pycurl?', slug: 'architecture/why-pycurl' },
+					],
+				},
 			],
 		}),
 	],
