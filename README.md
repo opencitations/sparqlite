@@ -1,7 +1,7 @@
 # sparqlite
 
 [![Tests](https://github.com/opencitations/sparqlite/actions/workflows/test.yml/badge.svg)](https://github.com/opencitations/sparqlite/actions/workflows/test.yml)
-[![Coverage](https://byob.yarr.is/arcangelo7/badges/opencitations-sparqlite-coverage-master)](https://opencitations.github.io/sparqlite/coverage/)
+[![Coverage](https://byob.yarr.is/arcangelo7/badges/opencitations-sparqlite-coverage-main)](https://opencitations.github.io/sparqlite/coverage/)
 [![Python Versions](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://github.com/opencitations/sparqlite)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![License](https://img.shields.io/badge/license-ISC-green)](https://github.com/opencitations/sparqlite/blob/master/LICENSE)
