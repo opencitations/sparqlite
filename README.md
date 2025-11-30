@@ -6,7 +6,7 @@
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![License](https://img.shields.io/badge/license-ISC-green)](https://github.com/opencitations/sparqlite/blob/master/LICENSE)
 
-A modern, lightweight SPARQL 1.1 client for Python.
+A modern, lightweight SPARQL 1.1 client for Python. Built on [pycurl](https://github.com/pycurl/pycurl) for [high performance](https://opencitations.github.io/sparqlite/architecture/why-pycurl/).
 
 [Full documentation](https://opencitations.github.io/sparqlite/)
 
