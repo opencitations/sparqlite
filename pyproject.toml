@@ -20,3 +20,6 @@ dev = [
     "pytest-cov>=7.0.0",
     "virtuoso-utilities>=1.6.1",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
