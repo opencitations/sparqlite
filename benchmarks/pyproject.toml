@@ -1,0 +1,18 @@
+[project]
+name = "sparqlite-benchmarks"
+version = "0.1.0"
+description = "Benchmark suite for SPARQL client libraries"
+requires-python = ">=3.10"
+dependencies = [
+    "sparqlite",
+    "SPARQLWrapper>=2.0.0",
+    "rdflib>=7.0.0",
+    "virtuoso-utilities>=1.6.1",
+    "httpx>=0.28.0",
+    "pandas>=2.0.0",
+    "matplotlib>=3.8.0",
+    "scipy>=1.15.3",
+]
+
+[tool.uv.sources]
+sparqlite = { path = ".." }
