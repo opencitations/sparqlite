@@ -7,7 +7,6 @@ from io import BytesIO
 from urllib.parse import urlencode
 
 import pycurl
-from rdflib import Graph
 
 from sparqlite.exceptions import EndpointError, QueryError
 
@@ -156,33 +155,27 @@ class SPARQLClient:
         content = self._request(query, "application/sparql-results+json")
         return json.loads(content)["boolean"]
 
-    def construct(self, query: str) -> Graph:
+    def construct(self, query: str) -> bytes:
         """Execute a CONSTRUCT query.
 
         Args:
             query: The SPARQL CONSTRUCT query string.
 
         Returns:
-            rdflib.Graph containing the constructed RDF graph.
+            Raw N-Triples bytes.
         """
-        content = self._request(query, "text/turtle")
-        graph = Graph()
-        graph.parse(data=content, format="turtle")
-        return graph
+        return self._request(query, "application/n-triples")
 
-    def describe(self, query: str) -> Graph:
+    def describe(self, query: str) -> bytes:
         """Execute a DESCRIBE query.
 
         Args:
             query: The SPARQL DESCRIBE query string.
 
         Returns:
-            rdflib.Graph containing the description RDF graph.
+            Raw N-Triples bytes.
         """
-        content = self._request(query, "text/turtle")
-        graph = Graph()
-        graph.parse(data=content, format="turtle")
-        return graph
+        return self._request(query, "application/n-triples")
 
     def update(self, query: str) -> None:
         """Execute a SPARQL UPDATE query (INSERT, DELETE, etc.).

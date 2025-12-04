@@ -28,9 +28,9 @@ with SPARQLClient("https://opencitations.net/meta/sparql") as client:
         LIMIT 10
     """)
 
-    # Iterate over results
-    for row in result:
-        print(f"{row['title']}: {row['doi']}")
+    # Iterate over results (SPARQL JSON format)
+    for row in result["results"]["bindings"]:
+        print(f"{row['title']['value']}: {row['doi']['value']}")
 ```
 
 The context manager ensures the HTTP connection is properly closed when done and enables connection reuse for multiple queries.
@@ -51,11 +51,12 @@ with SPARQLClient("https://opencitations.net/meta/sparql") as client:
     """)
 
     # Check if there are results
-    if result:
-        print(f"Found {len(result)} results")
+    bindings = result["results"]["bindings"]
+    if bindings:
+        print(f"Found {len(bindings)} results")
 
     # Get variable names
-    print(f"Variables: {result.variables}")
+    print(f"Variables: {result['head']['vars']}")
 ```
 
 ## Different query types
@@ -89,8 +90,8 @@ with SPARQLClient("https://opencitations.net/meta/sparql") as client:
     if exists:
         print("This DOI exists in OpenCitations!")
 
-    # CONSTRUCT - returns a GraphResult wrapping an rdflib.Graph
-    graph = client.construct("""
+    # CONSTRUCT - returns raw N-Triples bytes
+    result = client.construct("""
         PREFIX fabio: <http://purl.org/spar/fabio/>
         PREFIX dcterms: <http://purl.org/dc/terms/>
 
@@ -103,9 +104,10 @@ with SPARQLClient("https://opencitations.net/meta/sparql") as client:
         }
         LIMIT 10
     """)
+    print(result.decode())
 
-    # DESCRIBE - returns a GraphResult wrapping an rdflib.Graph
-    graph = client.describe("""
+    # DESCRIBE - returns raw N-Triples bytes
+    result = client.describe("""
         PREFIX fabio: <http://purl.org/spar/fabio/>
         PREFIX dcterms: <http://purl.org/dc/terms/>
 
@@ -115,6 +117,7 @@ with SPARQLClient("https://opencitations.net/meta/sparql") as client:
         }
         LIMIT 1
     """)
+    print(result.decode())
 ```
 
 ## Next steps

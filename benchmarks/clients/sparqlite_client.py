@@ -1,5 +1,3 @@
-from rdflib import Graph
-
 from sparqlite import SPARQLClient
 
 from clients.base import SPARQLClientBase
@@ -20,10 +18,10 @@ class SparqliteClient(SPARQLClientBase):
     def ask(self, query: str) -> bool:
         return self._client.ask(query)
 
-    def construct(self, query: str) -> Graph:
+    def construct(self, query: str) -> bytes:
         return self._client.construct(query)
 
-    def describe(self, query: str) -> Graph:
+    def describe(self, query: str) -> bytes:
         return self._client.describe(query)
 
     def update(self, query: str) -> None:

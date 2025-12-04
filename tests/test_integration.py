@@ -7,7 +7,6 @@ All tests verify complete expected results, not just individual elements.
 import warnings
 
 import pytest
-from rdflib import RDF, Graph, Literal, Namespace, URIRef
 
 from sparqlite import EndpointError, QueryError, SPARQLClient
 
@@ -24,19 +23,18 @@ PREFIX pro: <http://purl.org/spar/pro/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 """
 
-FABIO = Namespace("http://purl.org/spar/fabio/")
-DCTERMS = Namespace("http://purl.org/dc/terms/")
-PRISM = Namespace("http://prismstandard.org/namespaces/basic/2.0/")
-DATACITE = Namespace("http://purl.org/spar/datacite/")
-LITERAL = Namespace("http://www.essepuntato.it/2010/06/literalreification/")
-PRO = Namespace("http://purl.org/spar/pro/")
-FOAF = Namespace("http://xmlns.com/foaf/0.1/")
 
-BR1 = URIRef("https://w3id.org/oc/meta/br/1")
-BR2 = URIRef("https://w3id.org/oc/meta/br/2")
-BR3 = URIRef("https://w3id.org/oc/meta/br/3")
-RA1 = URIRef("https://w3id.org/oc/meta/ra/1")
-RA2 = URIRef("https://w3id.org/oc/meta/ra/2")
+def parse_ntriples(data: bytes) -> set[tuple[str, str, str]]:
+    """Parse N-Triples data into a set of (subject, predicate, object) tuples."""
+    triples = set()
+    for line in data.decode().strip().split("\n"):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.rstrip(" .").split("\t")
+        if len(parts) == 3:
+            triples.add((parts[0], parts[1], parts[2]))
+    return triples
 
 
 class TestSelectQuery:
@@ -245,16 +243,19 @@ class TestConstructQuery:
             }}
         """)
 
-        expected = Graph()
-        expected.add((RA1, FOAF.name, Literal("John Smith")))
-        expected.add((RA1, FOAF.made, BR1))
-        expected.add((BR1, DCTERMS.title, Literal("A study on citation networks")))
-        expected.add((RA2, FOAF.name, Literal("Jane Doe")))
-        expected.add((RA2, FOAF.made, BR2))
-        expected.add((BR2, DCTERMS.title, Literal("Machine learning in bibliometrics")))
+        assert isinstance(result, bytes)
+        triples = parse_ntriples(result)
+        assert len(triples) == 6
 
-        assert isinstance(result, Graph)
-        assert result.isomorphic(expected)
+        expected = {
+            ('<https://w3id.org/oc/meta/ra/1>', '<http://xmlns.com/foaf/0.1/name>', '"John Smith"'),
+            ('<https://w3id.org/oc/meta/ra/1>', '<http://xmlns.com/foaf/0.1/made>', '<https://w3id.org/oc/meta/br/1>'),
+            ('<https://w3id.org/oc/meta/br/1>', '<http://purl.org/dc/terms/title>', '"A study on citation networks"'),
+            ('<https://w3id.org/oc/meta/ra/2>', '<http://xmlns.com/foaf/0.1/name>', '"Jane Doe"'),
+            ('<https://w3id.org/oc/meta/ra/2>', '<http://xmlns.com/foaf/0.1/made>', '<https://w3id.org/oc/meta/br/2>'),
+            ('<https://w3id.org/oc/meta/br/2>', '<http://purl.org/dc/terms/title>', '"Machine learning in bibliometrics"'),
+        }
+        assert triples == expected
 
     def test_construct_article_metadata(self, client, test_data):
         """Test CONSTRUCT query for article metadata graph."""
@@ -273,16 +274,19 @@ class TestConstructQuery:
             }}
         """)
 
-        expected = Graph()
-        expected.add((BR1, RDF.type, FABIO.JournalArticle))
-        expected.add((BR1, DCTERMS.title, Literal("A study on citation networks")))
-        expected.add((BR1, PRISM.publicationDate, Literal("2024-01-15")))
-        expected.add((BR2, RDF.type, FABIO.JournalArticle))
-        expected.add((BR2, DCTERMS.title, Literal("Machine learning in bibliometrics")))
-        expected.add((BR2, PRISM.publicationDate, Literal("2024-03-20")))
+        assert isinstance(result, bytes)
+        triples = parse_ntriples(result)
+        assert len(triples) == 6
 
-        assert isinstance(result, Graph)
-        assert result.isomorphic(expected)
+        expected = {
+            ('<https://w3id.org/oc/meta/br/1>', '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>', '<http://purl.org/spar/fabio/JournalArticle>'),
+            ('<https://w3id.org/oc/meta/br/1>', '<http://purl.org/dc/terms/title>', '"A study on citation networks"'),
+            ('<https://w3id.org/oc/meta/br/1>', '<http://prismstandard.org/namespaces/basic/2.0/publicationDate>', '"2024-01-15"'),
+            ('<https://w3id.org/oc/meta/br/2>', '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>', '<http://purl.org/spar/fabio/JournalArticle>'),
+            ('<https://w3id.org/oc/meta/br/2>', '<http://purl.org/dc/terms/title>', '"Machine learning in bibliometrics"'),
+            ('<https://w3id.org/oc/meta/br/2>', '<http://prismstandard.org/namespaces/basic/2.0/publicationDate>', '"2024-03-20"'),
+        }
+        assert triples == expected
 
     def test_construct_book(self, client, test_data):
         """Test CONSTRUCT query for books."""
@@ -296,13 +300,16 @@ class TestConstructQuery:
             }}
         """)
 
-        expected = Graph()
-        expected.add((BR3, RDF.type, FABIO.Book))
-        expected.add((BR3, DCTERMS.title, Literal("Introduction to Semantic Web")))
-        expected.add((BR3, PRISM.publicationDate, Literal("2023-06-01")))
+        assert isinstance(result, bytes)
+        triples = parse_ntriples(result)
+        assert len(triples) == 3
 
-        assert isinstance(result, Graph)
-        assert result.isomorphic(expected)
+        expected = {
+            ('<https://w3id.org/oc/meta/br/3>', '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>', '<http://purl.org/spar/fabio/Book>'),
+            ('<https://w3id.org/oc/meta/br/3>', '<http://purl.org/dc/terms/title>', '"Introduction to Semantic Web"'),
+            ('<https://w3id.org/oc/meta/br/3>', '<http://prismstandard.org/namespaces/basic/2.0/publicationDate>', '"2023-06-01"'),
+        }
+        assert triples == expected
 
     def test_construct_empty(self, client, test_data):
         """Test CONSTRUCT with no results."""
@@ -315,9 +322,9 @@ class TestConstructQuery:
             }}
         """)
 
-        expected = Graph()
-
-        assert result.isomorphic(expected)
+        assert isinstance(result, bytes)
+        triples = parse_ntriples(result)
+        assert len(triples) == 0
 
 
 class TestDescribeQuery:
@@ -331,15 +338,18 @@ class TestDescribeQuery:
             FROM <{TEST_GRAPH}>
         """)
 
-        expected = Graph()
-        expected.add((BR1, RDF.type, FABIO.JournalArticle))
-        expected.add((BR1, DCTERMS.title, Literal("A study on citation networks")))
-        expected.add((BR1, PRISM.publicationDate, Literal("2024-01-15")))
-        expected.add((BR1, DATACITE.hasIdentifier, URIRef("https://w3id.org/oc/meta/id/1")))
-        expected.add((BR1, PRO.isDocumentContextFor, URIRef("https://w3id.org/oc/meta/ar/1")))
+        assert isinstance(result, bytes)
+        triples = parse_ntriples(result)
+        assert len(triples) == 5
 
-        assert isinstance(result, Graph)
-        assert result.isomorphic(expected)
+        expected = {
+            ('<https://w3id.org/oc/meta/br/1>', '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>', '<http://purl.org/spar/fabio/JournalArticle>'),
+            ('<https://w3id.org/oc/meta/br/1>', '<http://purl.org/dc/terms/title>', '"A study on citation networks"'),
+            ('<https://w3id.org/oc/meta/br/1>', '<http://prismstandard.org/namespaces/basic/2.0/publicationDate>', '"2024-01-15"'),
+            ('<https://w3id.org/oc/meta/br/1>', '<http://purl.org/spar/datacite/hasIdentifier>', '<https://w3id.org/oc/meta/id/1>'),
+            ('<https://w3id.org/oc/meta/br/1>', '<http://purl.org/spar/pro/isDocumentContextFor>', '<https://w3id.org/oc/meta/ar/1>'),
+        }
+        assert triples == expected
 
 
 class TestUpdateQuery:
