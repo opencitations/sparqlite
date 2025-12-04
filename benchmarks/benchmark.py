@@ -12,8 +12,8 @@ from queries import QUERIES, UPDATES
 from setup_virtuoso import get_sparql_endpoint, setup_virtuoso, stop_virtuoso
 from test_data import load_test_data
 
-NUM_RUNS = 11
-ITERATIONS_PER_QUERY = 50
+NUM_RUNS = 101
+ITERATIONS_PER_QUERY = 100
 RESULTS_FILE = "results/benchmark_results.csv"
 
 

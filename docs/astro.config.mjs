@@ -51,6 +51,7 @@ export default defineConfig({
 					label: 'Architecture',
 					items: [
 						{ label: 'Why pycurl?', slug: 'architecture/why-pycurl' },
+						{ label: 'Benchmarks', slug: 'architecture/benchmarks' },
 					],
 				},
 			],

@@ -1092,14 +1092,10 @@ version = "0.1.0"
 source = { directory = "../" }
 dependencies = [
     { name = "pycurl" },
-    { name = "rdflib" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "pycurl", specifier = ">=7.45.7" },
-    { name = "rdflib", specifier = ">=7.5.0" },
-]
+requires-dist = [{ name = "pycurl", specifier = ">=7.45.7" }]
 
 [package.metadata.requires-dev]
 dev = [

@@ -1,0 +1,63 @@
+---
+title: Benchmarks
+description: Performance comparison of sparqlite vs rdflib and SPARQLWrapper
+---
+
+This page presents benchmark results comparing sparqlite against two popular Python SPARQL clients: [rdflib](https://rdflib.readthedocs.io/) and [SPARQLWrapper](https://sparqlwrapper.readthedocs.io/).
+
+## Methodology
+
+**Test environment:**
+- Virtuoso SPARQL endpoint running in Docker (4GB memory)
+- Python 3.12+
+- 11 runs per test (first run is warmup, discarded)
+- 50 iterations per query type
+- 1,000 test entities with properties and relationships
+
+**Query types tested:**
+- **SELECT**: simple triple pattern, filtered, with OPTIONAL, multi-pattern join
+- **ASK**: existence check, non-existence check
+- **CONSTRUCT**: simple graph construction
+- **DESCRIBE**: entity description
+- **UPDATE**: INSERT DATA, DELETE DATA, DELETE/INSERT with WHERE
+
+## Results
+
+### By operation type
+
+| Operation | sparqlite | rdflib | SPARQLWrapper |
+|-----------|-----------|--------|---------------|
+| SELECT | ~680 req/s | ~380 req/s | ~490 req/s |
+| ASK | ~3,300 req/s | ~1,450 req/s | ~1,300 req/s |
+| CONSTRUCT | ~880 req/s | ~260 req/s | ~200 req/s |
+| UPDATE | ~1,700 req/s | ~980 req/s | ~880 req/s |
+
+![Operation comparison](/sparqlite/benchmarks/operation_comparison.png)
+
+### By query type
+
+The following chart shows requests per second for each specific query type with 95% confidence intervals:
+
+![Requests per second by query type](/sparqlite/benchmarks/rps_by_query.png)
+
+### Key findings
+
+- **CONSTRUCT queries**: sparqlite is 3-4x faster than alternatives
+- **ASK queries**: sparqlite is 2-2.5x faster than alternatives
+- **UPDATE operations**: sparqlite achieves ~2x the throughput of competitors
+- **SELECT queries**: sparqlite is 1.4-1.8x faster than rdflib and SPARQLWrapper
+
+## Performance factors
+
+Several architectural differences explain sparqlite's performance advantage:
+
+| Feature | sparqlite | rdflib | SPARQLWrapper |
+|---------|-----------|--------|---------------|
+| HTTP backend | [pycurl](/sparqlite/architecture/why-pycurl/) | urllib | urllib |
+| Connection pooling | yes | no | no |
+| Explicit connection close | yes | no | no |
+| Query parsing | none | full SPARQL parser | regex |
+
+- **HTTP backend**: sparqlite uses pycurl, which is 2x faster than urllib used by rdflib and SPARQLWrapper. See [Why pycurl?](/sparqlite/architecture/why-pycurl/) for detailed HTTP library benchmarks
+- **Connection management**: sparqlite supports [connection pooling](/sparqlite/configuration/connection-pooling/) to reuse HTTP connections and avoid repeated TLS handshakes. It also allows explicit connection cleanup via `close()`, while rdflib and SPARQLWrapper rely on the garbage collector to release connections
+- **No query parsing**: sparqlite uses dedicated methods (`query()`, `ask()`, `construct()`, `describe()`, `update()`) so it does not need to parse queries to detect their type. SPARQLWrapper parses every query with regex to identify the query form, while rdflib uses a full SPARQL grammar parser
