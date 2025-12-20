@@ -20,6 +20,7 @@ class SPARQLClient:
         *,
         max_retries: int = 5,
         backoff_factor: float = 0.5,
+        timeout: float | None = None,
     ):
         """Initialize the SPARQL client.
 
@@ -27,10 +28,12 @@ class SPARQLClient:
             endpoint: The SPARQL endpoint URL.
             max_retries: Maximum number of retry attempts for transient errors.
             backoff_factor: Factor for exponential backoff (wait = factor * 2^retry).
+            timeout: Request timeout in seconds. None means no timeout.
         """
         self.endpoint = endpoint
         self.max_retries = max_retries
         self.backoff_factor = backoff_factor
+        self.timeout = timeout
         self._curl = pycurl.Curl()
 
     def __enter__(self) -> "SPARQLClient":
@@ -75,6 +78,9 @@ class SPARQLClient:
 
             buffer = BytesIO()
             self._curl.reset()
+
+            if self.timeout is not None:
+                self._curl.setopt(pycurl.TIMEOUT_MS, int(self.timeout * 1000))
 
             try:
                 self._curl.setopt(pycurl.URL, self.endpoint)

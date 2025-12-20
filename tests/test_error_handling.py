@@ -119,3 +119,69 @@ class TestPycurlErrorHandling:
             assert "Request error" in str(exc_info.value)
 
             client.close()
+
+
+class TestTimeoutConfiguration:
+    """Tests for timeout configuration."""
+
+    def test_timeout_parameter_stored(self):
+        """Test that timeout parameter is stored correctly."""
+        with patch("pycurl.Curl") as mock_curl_class:
+            mock_curl = MagicMock()
+            mock_curl_class.return_value = mock_curl
+
+            client = SPARQLClient("http://example.org/sparql", timeout=30.0)
+            assert client.timeout == 30.0
+            client.close()
+
+    def test_timeout_default_is_none(self):
+        """Test that timeout defaults to None."""
+        with patch("pycurl.Curl") as mock_curl_class:
+            mock_curl = MagicMock()
+            mock_curl_class.return_value = mock_curl
+
+            client = SPARQLClient("http://example.org/sparql")
+            assert client.timeout is None
+            client.close()
+
+    def test_timeout_ms_set_when_timeout_provided(self):
+        """Test that TIMEOUT_MS is set when timeout is provided."""
+        mock_curl = MagicMock()
+        mock_curl.getinfo.return_value = 200
+
+        setopt_calls = []
+
+        def track_setopt(opt, val):
+            setopt_calls.append((opt, val))
+
+        mock_curl.setopt = track_setopt
+
+        with patch("pycurl.Curl", return_value=mock_curl):
+            client = SPARQLClient("http://example.org/sparql", timeout=5.5)
+            client._curl = mock_curl
+            client._request("SELECT * WHERE { ?s ?p ?o }", "application/json")
+            client.close()
+
+        timeout_calls = [(opt, val) for opt, val in setopt_calls if opt == pycurl.TIMEOUT_MS]
+        assert timeout_calls == [(pycurl.TIMEOUT_MS, 5500)]
+
+    def test_timeout_ms_not_set_when_timeout_none(self):
+        """Test that TIMEOUT_MS is not set when timeout is None."""
+        mock_curl = MagicMock()
+        mock_curl.getinfo.return_value = 200
+
+        setopt_calls = []
+
+        def track_setopt(opt, val):
+            setopt_calls.append((opt, val))
+
+        mock_curl.setopt = track_setopt
+
+        with patch("pycurl.Curl", return_value=mock_curl):
+            client = SPARQLClient("http://example.org/sparql")
+            client._curl = mock_curl
+            client._request("SELECT * WHERE { ?s ?p ?o }", "application/json")
+            client.close()
+
+        timeout_calls = [opt for opt, val in setopt_calls if opt == pycurl.TIMEOUT_MS]
+        assert timeout_calls == []

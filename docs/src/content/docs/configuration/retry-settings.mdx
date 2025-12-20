@@ -60,6 +60,18 @@ with SPARQLClient("https://dbpedia.org/sparql", backoff_factor=1.0) as client:
     result = client.query(query)
 ```
 
+### timeout
+
+Set a timeout in seconds for each request. Default is `None` (no timeout):
+
+```python
+# 30 second timeout
+with SPARQLClient("https://dbpedia.org/sparql", timeout=30) as client:
+    result = client.query(query)
+```
+
+Timeout errors trigger the retry mechanism.
+
 ## What triggers retry
 
 sparqlite automatically retries on these transient errors:
