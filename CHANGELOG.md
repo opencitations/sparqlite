@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/opencitations/sparqlite/compare/v1.0.0...v1.1.0) (2025-12-20)
+
+
+### Features
+
+* add timeout parameter to SPARQLClient [release] ([8bfd31a](https://github.com/opencitations/sparqlite/commit/8bfd31aa3ac3f01945d45fa1be4867b8782dac9c))
+
 # 1.0.0 (2025-12-04)
 
 
